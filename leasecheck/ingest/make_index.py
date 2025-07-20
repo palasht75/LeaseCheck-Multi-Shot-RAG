@@ -15,6 +15,7 @@ Re‑run whenever a law updates.  CI can schedule this weekly.  All heavy
 embedding work is delegated to `_VectorStore.build_index`, keeping a
 single source of truth.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,7 @@ import pdfplumber  # PDF → text
 from leasecheck.tools.legality import _VectorStore
 
 USER_AGENT = "LeaseCheckBot/0.2 (+https://github.com/yourname/leasecheck)"
-TIMEOUT    = 45  # seconds for HTTP requests
+TIMEOUT = 45  # seconds for HTTP requests
 
 # ──────────────────────────────────────────────────────────────────────
 # 1. Province → list of primary sources
@@ -62,6 +63,7 @@ PROVINCE_SOURCES: Dict[str, List[dict]] = {
 # ──────────────────────────────────────────────────────────────────────
 # 2. Helper functions
 # ──────────────────────────────────────────────────────────────────────
+
 
 def _http_get(url: str) -> requests.Response:
     """Shared HTTP GET with UA & timeout, raises on non‑200."""
@@ -102,9 +104,11 @@ def _collapse_ws(text: str) -> str:
     text = html.unescape(text)
     return re.sub(r"\s+", " ", text).strip()
 
+
 # ──────────────────────────────────────────────────────────────────────
 # 3. Main routine
 # ──────────────────────────────────────────────────────────────────────
+
 
 def build_index(
     provinces: List[str], raw_dir: Path, clean_dir: Path, dst: Path
@@ -121,7 +125,10 @@ def build_index(
         for src in sources:
             name, url = src["name"], src["url"]
             is_pdf = src.get("pdf", False)
-            print(f"→ Fetching {prov}/{name} ({'PDF' if is_pdf else 'HTML'}) …", flush=True)
+            print(
+                f"→ Fetching {prov}/{name} ({'PDF' if is_pdf else 'HTML'}) …",
+                flush=True,
+            )
             try:
                 raw = fetch_pdf_text(url) if is_pdf else fetch_html_text(url)
             except Exception as exc:
@@ -152,11 +159,33 @@ def build_index(
 # 4. CLI entry point
 # ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Build FAISS index from statute sources (HTML & PDF).")
-    ap.add_argument("--raw", type=Path, default=Path("data/statutes_raw"), help="folder to store raw downloads")
-    ap.add_argument("--clean", type=Path, default=Path("data/statutes_clean"), help="folder for cleaned .txt")
-    ap.add_argument("--dst", type=Path, default=Path("leasecheck/tools"), help="output folder for faiss.index & meta.pkl")
-    ap.add_argument("--provinces", nargs="*", default=list(PROVINCE_SOURCES.keys()), help="province codes to ingest")
+    ap = argparse.ArgumentParser(
+        description="Build FAISS index from statute sources (HTML & PDF)."
+    )
+    ap.add_argument(
+        "--raw",
+        type=Path,
+        default=Path("data/statutes_raw"),
+        help="folder to store raw downloads",
+    )
+    ap.add_argument(
+        "--clean",
+        type=Path,
+        default=Path("data/statutes_clean"),
+        help="folder for cleaned .txt",
+    )
+    ap.add_argument(
+        "--dst",
+        type=Path,
+        default=Path("leasecheck/tools"),
+        help="output folder for faiss.index & meta.pkl",
+    )
+    ap.add_argument(
+        "--provinces",
+        nargs="*",
+        default=list(PROVINCE_SOURCES.keys()),
+        help="province codes to ingest",
+    )
 
     args = ap.parse_args()
     build_index(

@@ -16,6 +16,7 @@ well‑known illegal terms ("no pets" in Ontario, etc.).  They give instant
 answers without touching the vector store while more exotic clauses fall
 back to the embedding search.
 """
+
 from __future__ import annotations
 
 import pickle
@@ -37,7 +38,12 @@ META_FILE = "meta.pkl"
 # Province‑specific regex shortcuts → (pattern, legal?, source_id, reason)
 _REGEX_RULES: Dict[str, List[Tuple[str, bool, str, str]]] = {
     "ON": [
-        (r"\bno\s+pets?\b", False, "ON_RTA_014", "Ontario RTA s.14 voids no‑pets clauses."),
+        (
+            r"\bno\s+pets?\b",
+            False,
+            "ON_RTA_014",
+            "Ontario RTA s.14 voids no‑pets clauses.",
+        ),
         (
             r"post[\- ]dated\s+cheques?",
             False,
@@ -62,7 +68,9 @@ _REGEX_RULES: Dict[str, List[Tuple[str, bool, str, str]]] = {
 class _VectorStore:
     """Light wrapper around a FAISS flat‑IP index and parallel metadata."""
 
-    def __init__(self, index: faiss.Index, meta: List[dict], model: SentenceTransformer):
+    def __init__(
+        self, index: faiss.Index, meta: List[dict], model: SentenceTransformer
+    ):
         self.index = index
         self.meta = meta
         self.model = model
@@ -90,7 +98,9 @@ class _VectorStore:
 
     # utility: build a brand‑new index
     @staticmethod
-    def build_index(src_dir: Path, dst_folder: Path, model_name: str = DEFAULT_MODEL) -> None:
+    def build_index(
+        src_dir: Path, dst_folder: Path, model_name: str = DEFAULT_MODEL
+    ) -> None:
         """Embed every *.txt file under *src_dir* and write index + meta."""
         model = SentenceTransformer(model_name)
         texts: List[str] = []
@@ -103,7 +113,13 @@ class _VectorStore:
             chunks = [raw[i : i + 600] for i in range(0, len(raw), 600)]
             for n, chunk in enumerate(chunks):
                 texts.append(chunk)
-                meta.append({"id": f"{province}_{txt_file.stem}_{n:03}", "province": province, "text": chunk})
+                meta.append(
+                    {
+                        "id": f"{province}_{txt_file.stem}_{n:03}",
+                        "province": province,
+                        "text": chunk,
+                    }
+                )
 
         vecs = model.encode(texts, show_progress_bar=True).astype("float32")
         idx = faiss.IndexFlatIP(vecs.shape[1])
@@ -131,7 +147,10 @@ def _store() -> _VectorStore:
 # Public API: check_legality
 # ──────────────────────────────────────────────────────────────────────
 
-def _regex_first(clause: str, province: str) -> Tuple[bool | None, str | None, str | None]:
+
+def _regex_first(
+    clause: str, province: str
+) -> Tuple[bool | None, str | None, str | None]:
     """Quick pattern pass for common clauses."""
     for pattern, legal, sid, reason in _REGEX_RULES.get(province, []):
         if re.search(pattern, clause, flags=re.I):
@@ -186,6 +205,7 @@ def check_legality(clause: str, province: str, *, top_k: int = 4) -> dict:
 # ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) == 3 and sys.argv[1] == "build":
         src = Path(sys.argv[2])
         dst = Path(__file__).parent

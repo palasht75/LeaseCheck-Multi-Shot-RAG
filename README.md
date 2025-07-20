@@ -93,7 +93,7 @@ A weekly GitHub Action downloads updated statutes, rebuilds embeddings, and open
 
 ---
 
-## 📈 Why Recruiters Will Notice
+## 📈 Tech Stack
 
 Modern stack: GPT-4o function calling, FAISS RAG, Streamlit streaming, Poetry, Ruff, GitHub Actions
 

@@ -47,7 +47,11 @@ FUNCTION_DEF = {
         "type": "object",
         "properties": {
             "clause": {"type": "string", "description": "Raw lease clause."},
-            "province": {"type": "string", "enum": ["ON", "BC"], "description": "Province code."},
+            "province": {
+                "type": "string",
+                "enum": ["ON", "BC"],
+                "description": "Province code.",
+            },
         },
         "required": ["clause", "province"],
     },
@@ -60,6 +64,7 @@ SHOT_MESSAGES: List[Dict[str, Any]] = [
         "content": "According to Ontario RTA s.13, landlords may accept but cannot demand post‑dated cheques. This clause is unenforceable.",
     },
 ]
+
 
 def stream_chat(messages: List[Dict[str, Any]]):
     first = client.chat.completions.create(
@@ -74,36 +79,56 @@ def stream_chat(messages: List[Dict[str, Any]]):
     print(f"Model response: {msg.function_call or '<no content>'}")
 
     if msg.function_call and msg.function_call.name == "check_legality":
-        print(f"Function call: {msg.function_call.name} with args {msg.function_call.arguments}")
+        print(
+            f"Function call: {msg.function_call.name} with args {msg.function_call.arguments}"
+        )
         args = json.loads(msg.function_call.arguments)
         log.debug("Function args: %s", args)
         result = check_legality(**args)
         log.debug("Function result: %s", result)
 
-        messages.extend([
-            {"role": "assistant", "content": None, "function_call": msg.function_call.model_dump()},
-            {"role": "function", "name": "check_legality", "content": json.dumps(result)},
-        ])
+        messages.extend(
+            [
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "function_call": msg.function_call.model_dump(),
+                },
+                {
+                    "role": "function",
+                    "name": "check_legality",
+                    "content": json.dumps(result),
+                },
+            ]
+        )
     else:
         for tok in (msg.content or "").split():
             yield tok + " "
         return
 
-    stream_iter = client.chat.completions.create(model=MODEL, messages=messages, stream=True)
+    stream_iter = client.chat.completions.create(
+        model=MODEL, messages=messages, stream=True
+    )
     for chunk in stream_iter:
         token = chunk.choices[0].delta.content or ""
         if token:
             yield token
 
+
 def build_conversation(clause: str, province: str) -> List[Dict[str, Any]]:
-    return [{"role": "system", "content": SYSTEM_PROMPT}] + SHOT_MESSAGES + [
-        {"role": "user", "content": f"Clause: {clause}\nProvince: {province}"}
-    ]
+    return (
+        [{"role": "system", "content": SYSTEM_PROMPT}]
+        + SHOT_MESSAGES
+        + [{"role": "user", "content": f"Clause: {clause}\nProvince: {province}"}]
+    )
+
 
 st.set_page_config(page_title="LeaseCheck‑Canada", page_icon="📜")
 st.title("📜 LeaseCheck‑Canada – AI Lease Clause Auditor (GPT‑4o mini)")
 
-clause_in = st.text_area("Lease clause", placeholder="e.g. Tenant shall not keep pets …", height=140)
+clause_in = st.text_area(
+    "Lease clause", placeholder="e.g. Tenant shall not keep pets …", height=140
+)
 province_in = st.selectbox("Province", ["ON", "BC"], index=0)
 
 if st.button("Analyze") and clause_in.strip():
