@@ -1,0 +1,65 @@
+name: Rebuild Vector DB (weekly)
+
+on:
+  schedule:
+    # Runs every Monday at 02:00 UTC
+    - cron:  '0 2 * * 1'
+  workflow_dispatch:   # ← lets you trigger it manually from the Actions tab
+
+jobs:
+  rebuild-index:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # we’ll need history for diff + PR
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: false
+
+      - name: Install project deps
+        run: poetry install --no-interaction --no-root
+
+      # --- the actual ingestion ---
+      - name: Rebuild FAISS index
+        run: |
+          poetry run python -m leasecheck.ingest.make_index \
+            --raw   data/statutes_raw \
+            --clean data/statutes_clean \
+            --dst   leasecheck/tools \
+            --provinces ON BC
+          
+      # --- commit & PR if anything changed ---
+      - name: Configure git
+        run: |
+          git config user.name  "vector‑bot"
+          git config user.email "actions@github.com"
+
+      - name: Commit updated index
+        run: |
+          if [[ `git status --porcelain leasecheck/tools/faiss.index leasecheck/tools/meta.pkl` ]]; then
+            git switch -c update/vectors-$(date +'%Y%m%d')
+            git add leasecheck/tools/faiss.index leasecheck/tools/meta.pkl
+            git commit -m "chore: weekly FAISS index refresh"            
+            git push -u origin HEAD
+          else
+            echo "No changes in vectors."
+          fi
+
+      - name: Create PR
+        if: ${{ github.ref != 'refs/heads/main' }}
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "Weekly FAISS index refresh"
+          commit-message: "chore: weekly FAISS index refresh"
+          branch: ${{ github.ref_name }}
+          base: main
