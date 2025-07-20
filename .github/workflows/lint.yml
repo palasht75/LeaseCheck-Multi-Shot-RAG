@@ -1,0 +1,27 @@
+# .github/workflows/lint.yml
+name: Lint with Ruff
+
+on:
+  push:
+    # run on all branches; you can restrict to main if you prefer
+    branches: ["**"]
+
+jobs:
+  ruff-lint:
+    name: Run Ruff linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Lint code base
+        run: ruff check . --exit-zero
