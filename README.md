@@ -1,7 +1,7 @@
 # LeaseCheck-Multi-Shot-RAG
 
-Detect ⚖️ illegal or unfair clauses in Canadian residential leases — powered by Retrieval Augmented Generation (RAG), multi-shot prompting, and a lean Python tool.  
-This repo demonstrates end-to-end modern LLM engineering for recruiters.
+Detect ⚖️ illegal or unfair clauses in Canadian residential leases. It is powered by Retrieval Augmented Generation (RAG), multi-shot prompting, and a lean Python tool.  
+This repo demonstrates end-to-end modern LLM engineering.
 
 ---
 
